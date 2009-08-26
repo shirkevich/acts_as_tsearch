@@ -14,7 +14,8 @@ module ActiveRecord
         )
       end
       
-    
+    end    
+
     class PostgreSQLColumn < Column #:nodoc:
       private
         alias_method :simplified_type_base, :simplified_type
@@ -30,8 +31,6 @@ module ActiveRecord
               simplified_type_base(field_type)
           end
         end
-    end
-
     end
 
   end
