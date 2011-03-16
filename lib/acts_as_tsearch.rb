@@ -118,7 +118,7 @@ module TsearchMixin
           tsearch_options[:fix_query] = true if tsearch_options[:fix_query].nil?
 
           locale = @tsearch_config[tsearch_options[:vector].intern][:locale]
-          check_for_vector_column(tsearch_options[:vector])
+          check_for_vector_column(tsearch_options[:vector])          
           
           search_string = fix_tsearch_query(search_string) if tsearch_options[:fix_query] == true
           
@@ -149,11 +149,8 @@ module TsearchMixin
           end
           
           #add tsearch_query to from
-          if is_postgresql_83?
-            from_part = "to_tsquery('#{search_string}') as tsearch_query"
-          else
-            from_part = "to_tsquery('#{locale}','#{search_string}') as tsearch_query"
-          end
+          from_part = "to_tsquery('#{locale}','#{search_string}') as tsearch_query"
+          
           if options[:from]
             options[:from] = "#{from_part}, #{options[:from]}"
           else
@@ -326,17 +323,9 @@ module TsearchMixin
             fields = @tsearch_config[vector_name.intern][:fields]
             tables = @tsearch_config[vector_name.intern][:tables]
             if fields.is_a?(Array)
-              if is_postgresql_83?
-                sql = "update #{table_name} set #{vector_name} = to_tsvector(#{coalesce_array(fields)})"
-              else
-                sql = "update #{table_name} set #{vector_name} = to_tsvector('#{locale}',#{coalesce_array(fields)})"
-              end
-            elsif fields.is_a?(String)
-              if is_postgresql_83?
-                sql = "update #{table_name} set #{vector_name} = to_tsvector(#{fields})"
-              else
-                sql = "update #{table_name} set #{vector_name} = to_tsvector('#{locale}', #{fields})"  
-              end
+              sql = "update #{table_name} set #{vector_name} = to_tsvector('#{locale}',#{coalesce_array(fields)})"
+            elsif fields.is_a?(String)              
+              sql = "update #{table_name} set #{vector_name} = to_tsvector('#{locale}', #{fields})"    
             elsif fields.is_a?(Hash)
               if fields.size > 4
                 raise "acts_as_tsearch currently only supports up to 4 weighted sets."
@@ -344,11 +333,7 @@ module TsearchMixin
                 setweights = []
                 ["a","b","c","d"].each do |f|
                   if fields[f]
-                    if is_postgresql_83?
-                      setweights << "setweight( to_tsvector(#{coalesce_array(fields[f][:columns])}),'#{f.upcase}')"
-                    else
-                      setweights << "setweight( to_tsvector('#{locale}', #{coalesce_array(fields[f][:columns])}),'#{f.upcase}')"
-                    end
+                    setweights << "setweight( to_tsvector('#{locale}', #{coalesce_array(fields[f][:columns])}),'#{f.upcase}')"
                   end
                 end
                 sql = "update #{table_name} set #{vector_name} = #{setweights.join(" || ")}"
